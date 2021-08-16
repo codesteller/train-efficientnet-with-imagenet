@@ -55,60 +55,47 @@ To train your model using mixed or TF32 precision with Tensor Cores or using FP3
 	```
 
 2. Download and prepare the dataset.
-          `Runner.py` supports ImageNet with [TensorFlow Datasets (TFDS)](https://www.tensorflow.org/datasets/overview). Refer to  the [TFDS ImageNet readme](https://github.com/tensorflow/datasets/blob/master/docs/catalog/imagenet2012.md) for manual download instructions.
+    * Download ImageNet Dataset from the [link](https://www.image-net.org/download.php) to a folder "~/Downloads/imagenet12"
+        ``` 
+        $ ls -l ~/Downloads/imagenet12
+        ILSVRC2012_img_test_v10102019.tar
+        ILSVRC2012_img_train_t3.tar
+        ILSVRC2012_img_train.tar
+        ILSVRC2012_img_val.tar
+        ```
 
-3. Build EfficientNet on top of the NGC container.
-           `bash ./scripts/docker/build.sh`
+    * To prepare the dataset 
+        1. Run Docker Container
+        ```
+            docker run -it --rm --shm-size=1g --ipc=host \
+            --ulimit memlock=-1 --ulimit stack=67108864 \
+            -v ~/Downloads/imagenet12:/imagenet \
+            -w /workspace/nvidia-examples/build_imagenet_data/ \
+            nvcr.io/nvidia/tensorflow:21.07-tf2-py3
+        ```
+        2. Process and Prepare Imagenet Dataset
+        ```
+            mkdir -p /imagenet/raw-data
+            cp /imagenet/ILSVRC2012_img_*.tar /imagenet/raw-data/
+            ./download_and_preprocess_imagenet.sh /imagenet
+        ```
 
-4. Start an interactive session in the NGC container to run training/inference.
-           `bash ./scripts/docker/launch.sh`
+3. Start EfficientNet Docker built on top of the NGC container for training. Configure the dataset path accordingly
+           ```
+           bash startDocker.sh
+           ```
+
+4. Run training - change parameters in the file `train_efficientnet.sh` appropriately file the architecture, the dataset path. 
+           ```
+           bash ./scripts/docker/launch.sh
+           ```
 
 5. Start training.
 
-    To run training for a standard configuration (DGX A100/DGX-1 V100, AMP/TF32/FP32, 500 Epochs, efficientnet-b0/efficientnet-b4), 
-    run one of the scripts in the `./scripts/{B0, B4}/training` directory called `./scripts/{B0, B4}/training/{AMP, TF32, FP32}/convergence_8x{A100-80G, V100-16G, V100-32G}.sh`.
-    Ensure ImageNet is mounted in the `/data` directory.
-    For example:
-    `bash ./scripts/B0/AMP/convergence_8xA100-80G.sh`
-
-6. Start validation/evaluation.
-
-   To run validation/evaluation for a standard configuration (DGX A100/DGX-1 V100, AMP/TF32/FP32, efficientnet-b0/efficientnet-b4), 
-   run one of the scripts in the `./scripts/{B0, B4}/evaluation` directory called `./scripts/{B0, B4}/evaluation/evaluation_{AMP, FP32, TF32}_8x{A100-80G, V100-16G, V100-32G}.sh`.
-    Ensure ImageNet is mounted in the `/data` directory.
-    (Optional) Place the checkpoint in the `--model_dir` location to evaluate on a checkpoint.
-    For example:
-    `bash ./scripts/B0/evaluation/evaluation_AMP_8xA100-80G.sh`
-
-7. Start inference/predictions.
-
-   To run inference for a standard configuration (DGX A100/DGX-1 V100, AMP/TF32/FP32, efficientnet-b0/efficientnet-b4, batch size 8), 
-   run one of the scripts in the `./scripts/{B0, B4}/inference` directory called `./scripts/{B0, B4}/inference/inference_{AMP, FP32, TF32}.sh`.
-    Ensure your JPEG images to be ran inference on are mounted in the `/infer_data` directory with this folder structure :
-    ```
-    infer_data
-    |   ├── images
-    |   |   ├── image1.JPEG
-    |   |   ├── image2.JPEG
-    ```
-    (Optional) Place the checkpoint in the `--model_dir` location to evaluate on a checkpoint.
-    For example:
-    `bash ./scripts/B0/inference/inference_{AMP, FP32}.sh`
-
-Now that you have your model trained and evaluated, you can choose to compare your training results with our [Training accuracy results](#training-accuracy-results). You can also choose to benchmark yours performance to [Training performance benchmark](#training-performance-results), or [Inference performance benchmark](#inference-performance-results). Following the steps in these sections will ensure that you achieve the same accuracy and performance results as stated in the [Results](#results) section.
 
 ## Advanced
 
-The following sections provide greater details of the dataset, running training and inference, and the training results.
-
-### Scripts and sample code
-
-The following lists the content for each folder:
-- `scripts/` - shell scripts to build and launch EfficientNet container on top of NGC container,
-and scripts to launch training, evaluation and inference
-- `model/` - building blocks and EfficientNet model definitions 
-- `runtime/` - detailed procedure for each running mode
-- `utils/` - support util functions for `runner.py`
+The following sections provide greater details of the dataset and running training
 
 ### Parameters
 
@@ -275,13 +262,13 @@ The following section shows how to run benchmarks measuring the model performanc
 
 #### Training performance benchmark
 
-Training benchmark for EfficientNet-B0 was run on NVIDIA DGX A100 80GB and NVIDIA DGX-1 V100 16GB.
+Training benchmark for EfficientNet-B0 was run on NVIDIA DGX A100 and NVIDIA DGX-1 V100 16GB.
 
 To benchmark training performance with other parameters, run:
 
 `bash ./scripts/B0/training/{AMP, FP32, TF32}/train_benchmark_8x{A100-80G, V100-16G}.sh`
 
-Training benchmark for EfficientNet-B4 was run on NVIDIA DGX A100- 80GB and NVIDIA DGX-1 V100 32GB.
+Training benchmark for EfficientNet-B4 was run on NVIDIA DGX A100 and NVIDIA DGX-1 V100 32GB.
 
 `bash ./scripts/B4/training/{AMP, FP32, TF32}/train_benchmark_8x{A100-80G, V100-16G}.sh`
 
